@@ -808,12 +808,22 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             outline: none;
             white-space: nowrap;
             flex-shrink: 0;
         }
-
+        /* 手机端进一步优化 */
+        @media (max-width: 480px) {
+            .replace-input {
+                padding: 3px 5px;
+                min-width: 50px;
+            }
+            .replace-btn {
+                padding: 3px 6px;
+                min-width: 40px;
+            }
+        }
         .replace-btn:hover {
             background: #ff6b9d;
         }
@@ -2249,6 +2259,7 @@
     </script>
 </body>
 </html>
+
 
 
 
