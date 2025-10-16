@@ -47,8 +47,19 @@
             background: linear-gradient(135deg, #ffe4f0 0%, #ffd4e8 50%, #e8d4ff 100%);
             min-height: 100vh;
             padding: 20px 20px 60px 20px;
+            margin: 0 auto; /* 关键：左右居中 */
+            max-width: 650px; /* 根据需要调整 */
         }
 
+        /* 手机端留点边距 */
+        @media (max-width: 768px) {
+            {   
+                margin: 0 10px; /* 手机上左右留10px边距 */
+                max-width: none;
+                width: calc(100% - 20px);
+            }
+        }
+        
         .controls {
             background: white;
             padding: 15px;
@@ -57,7 +68,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             min-width: 0;
         }
 
@@ -2250,6 +2261,7 @@
     </script>
 </body>
 </html>
+
 
 
 
