@@ -1862,11 +1862,6 @@
             textarea.addEventListener('blur', function() {
                 saveToUndoHistory();
             });
-            
-            setTimeout(() => {
-                textarea.focus();
-                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-            }, 100);
         }
 
         function attachEditEvents() {
@@ -1982,6 +1977,7 @@
     </script>
 </body>
 </html>
+
 
 
 
