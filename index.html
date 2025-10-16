@@ -794,8 +794,8 @@
             font-size: 13px;
             outline: none;
             flex: 1;
-            min-width: 50px;
-            max-width: 200px;
+            min-width: 10px;
+            max-width: 100px;
         }
 
         .replace-input:focus {
@@ -815,16 +815,16 @@
             flex-shrink: 0;
         }
         /* 手机端进一步优化 */
-        @media (max-width: 600px) {
+        @media (max-width: 200px) {
             .replace-input {
                 padding: 3px 5px;
                 min-width: 50px;
-                max-width: 220px;
+                max-width: 120px;
             }
             .replace-btn {
                 padding: 3px 6px;
                 min-width: 40px;
-                max-width: 220px;
+                max-width: 120px;
             }
         }
         .replace-btn:hover {
@@ -2262,6 +2262,7 @@
     </script>
 </body>
 </html>
+
 
 
 
