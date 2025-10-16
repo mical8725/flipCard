@@ -1,0 +1,1912 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记忆卡片</title>
+    <!-- 添加MathJax支持 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            svg: {
+                fontCache: 'global',
+                scale: 1.0
+            }
+        };
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        input, textarea, [contenteditable="true"] {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #ffe4f0 0%, #ffd4e8 50%, #e8d4ff 100%);
+            min-height: 100vh;
+            padding: 40px 20px 60px 20px;
+        }
+
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 40px;
+            min-width: 0;
+        }
+
+        .group-selector-btn {
+            background: #9b7ec4;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            outline: none;
+            min-width: 0;
+        }
+
+        .group-selector-btn:hover {
+            background: #8567b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .folder-icon {
+            width: 24px;
+            height: 20px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .folder-icon::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 14px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            border-radius: 2px;
+        }
+
+        .folder-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 8px;
+            background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+            border-radius: 2px 2px 0 0;
+        }
+
+        .group-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+            font-size: 17px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 6px;
+            min-width: 0;
+            flex-wrap: nowrap;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px 6px;
+            border: none;
+            border-radius: 6px;
+            background: #ff8fb4;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+            outline: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .btn:hover {
+            background: #ff6b9d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 30px 20px 50px 20px;
+            }
+            
+            .controls {
+                margin-bottom: 30px;
+            }
+            
+            .cards-grid {
+                gap: 20px;
+            }
+        }
+
+        .card-container {
+            perspective: 1000px;
+            width: 100%;
+            position: relative;
+        }
+
+        .card-container::before {
+            content: '';
+            display: block;
+            padding-top: 78%;
+        }
+
+        .card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+            pointer-events: none;
+        }
+
+        .card-face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .card-front {
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-number {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ff8fb4 0%, #ff6b9d 50%, #e05b8a 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: "Arial Black", sans-serif;
+        }
+
+        .card-back {
+            background: white;
+            color: #2c3e50;
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 15px;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            font-size: 18px;
+            overflow: hidden;
+            line-height: 1.7;
+            font-family: 'Computer Modern Serif', 'Latin Modern Roman', 'Times New Roman', serif;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        @media (max-width: 600px) {
+            .card-back {
+                padding: 12px;
+                font-size: 16px;
+                line-height: 1.6;
+            }
+        }
+
+        .card-back .MathJax {
+            font-size: 1.1em !important;
+            padding: 0.2em 0.2em !important;
+            display: inline-block;
+        }
+
+        .card-back mjx-container {
+            font-size: 1.1em !important;
+            padding: 0.2em 0.2em !important;
+            display: inline-block;
+        }
+
+        .card-back mjx-math {
+            font-size: 1.1em !important;
+        }
+
+        .card-back * {
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .card-back sub {
+            font-size: 0.75em;
+            vertical-align: sub;
+            position: static;
+            line-height: inherit;
+        }
+
+        .card-back sup {
+            font-size: 0.75em;
+            vertical-align: super;
+            position: static;
+            line-height: inherit;
+        }
+
+        .card-back .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            font-size: 1em;
+            margin: 0 0.2em;
+        }
+
+        .card-back .fraction .numerator {
+            display: block;
+            border-bottom: 1.5px solid currentColor;
+            padding-bottom: 2px;
+            min-width: 1.5em;
+            text-align: center;
+        }
+
+        .card-back .fraction .denominator {
+            display: block;
+            padding-top: 2px;
+            min-width: 1.5em;
+            text-align: center;
+        }
+
+        .card-text-line {
+            display: block;
+            margin: 0.4em 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .edit-mode {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            padding-bottom: 80px;
+        }
+
+        .edit-mode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .back-home-btn {
+            background: #ff8fb4;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .back-home-btn:hover {
+            background: #ff6b9d;
+            transform: translateY(-2px);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: #9b7ec4;
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover {
+            background: #8567b3;
+            transform: translateY(-2px);
+        }
+
+        .action-btn.cancel-btn {
+            background: #6c757d;
+        }
+
+        .action-btn.cancel-btn:hover {
+            background: #5a6268;
+        }
+
+        .action-btn.select-all-btn {
+            background: #28a745;
+        }
+
+        .action-btn.select-all-btn:hover {
+            background: #218838;
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        .group-card {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .group-card:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            min-width: 0;
+        }
+
+        .group-number-input {
+            width: 50px;
+            height: 32px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ff6b9d;
+            flex-shrink: 0;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .group-number-input:hover {
+            border-color: #ff8fb4;
+        }
+
+        .group-number-input:focus {
+            border-color: #ff6b9d;
+            background: #fff5f8;
+        }
+
+        .group-title {
+            font-size: 16px;
+            font-weight: 600;
+            padding: 6px;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            outline: none;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .group-title:hover {
+            border-color: #ff8fb4;
+        }
+
+        .group-checkbox {
+            position: absolute;
+            top: 12px;
+            right: 20px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .group-checkbox.show {
+            opacity: 1;
+        }
+
+        .group-checkbox:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .group-checkbox:checked:before {
+            background: #ff8fb4;
+            border-color: #ff8fb4;
+        }
+
+        .group-checkbox:checked:after {
+            content: '✓';
+            position: absolute;
+            top: 2px;
+            left: 5px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .group-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            gap: 10px;
+        }
+
+        .card-count {
+            font-size: 14px;
+            color: #666;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .group-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .edit-cards-btn, .delete-group-btn {
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            outline: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .edit-cards-btn {
+            background: #ff8fb4;
+        }
+
+        .edit-cards-btn:hover {
+            background: #ff6b9d;
+        }
+
+        .delete-group-btn {
+            background: #ff6b6b;
+        }
+
+        .delete-group-btn:hover {
+            background: #ee5253;
+        }
+
+        .bottom-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        .bottom-actions.show {
+            transform: translateY(0);
+        }
+
+        .bottom-action-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            color: white;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .delete-selected-btn {
+            background: #ff6b6b;
+        }
+
+        .delete-selected-btn:hover {
+            background: #ee5253;
+        }
+
+        .export-selected-btn {
+            background: #2ecc71;
+        }
+
+        .export-selected-btn:hover {
+            background: #27ae60;
+        }
+
+        .add-group-btn {
+            width: 100%;
+            padding: 15px;
+            background: #ff8fb4;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .add-group-btn:hover {
+            background: #ff6b9d;
+        }
+
+        .card-edit-page {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card-edit-header {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .card-edit-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ff6b9d;
+            margin: 0;
+            text-align: center;
+        }
+
+        .card-edit-nav {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            flex-wrap: nowrap;
+        }
+
+        .nav-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.3s;
+            white-space: nowrap;
+            color: white;
+            flex: 1;
+        }
+
+        .nav-btn.back-group-btn {
+            background: #ff8fb4;
+        }
+
+        .nav-btn.back-group-btn:hover {
+            background: #ff6b9d;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.back-home-nav-btn {
+            background: #9b7ec4;
+        }
+
+        .nav-btn.back-home-nav-btn:hover {
+            background: #8567b3;
+            transform: translateY(-2px);
+        }
+
+        .card-list {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .bulk-textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.8;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+        }
+
+        .bulk-textarea:focus {
+            border-color: #ff8fb4;
+        }
+
+        .format-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .format-btn {
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            outline: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .format-btn:hover {
+            background: #ff8fb4;
+            color: white;
+            border-color: #ff8fb4;
+        }
+
+        .replace-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 1px solid #e1ecf4;
+        }
+
+        .replace-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .replace-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .replace-input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .replace-input:focus {
+            border-color: #ff8fb4;
+        }
+
+        .replace-btn {
+            padding: 6px 12px;
+            background: #ff8fb4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            outline: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .replace-btn:hover {
+            background: #ff6b9d;
+        }
+
+        .replace-all-btn {
+            background: #9b7ec4;
+        }
+
+        .replace-all-btn:hover {
+            background: #8567b3;
+        }
+
+        .bulk-stats {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-info {
+            font-size: 14px;
+            color: #666;
+            flex: 1;
+        }
+
+        .undo-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            outline: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .undo-btn:hover {
+            background: #5a6268;
+        }
+
+        .undo-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ff6b9d;
+        }
+
+        .group-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .group-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .group-item-number {
+            background: #ff8fb4;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .group-item:hover {
+            background: #ff8fb4;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .group-item:hover .group-item-number {
+            background: white;
+            color: #ff8fb4;
+        }
+
+        .group-item.active {
+            background: #ff6b9d;
+            color: white;
+        }
+
+        .group-item.active .group-item-number {
+            background: white;
+            color: #ff6b9d;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .data-file-notice {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .data-file-notice strong {
+            color: #ff6b9d;
+        }
+
+        @media (max-width: 480px) {
+            .btn {
+                font-size: 12px;
+                padding: 8px 4px;
+            }
+            
+            .group-name {
+                font-size: 16px;
+            }
+            
+            .back-home-btn {
+                font-size: 12px;
+                padding: 10px 14px;
+            }
+
+            .action-btn {
+                font-size: 12px;
+                padding: 8px 10px;
+            }
+
+            .header-actions {
+                gap: 6px;
+            }
+            
+            .card-edit-title {
+                font-size: 16px;
+            }
+            
+            .nav-btn {
+                font-size: 13px;
+                padding: 10px 16px;
+            }
+            
+            .edit-cards-btn, .delete-group-btn, .replace-btn {
+                font-size: 11px;
+                padding: 6px 8px;
+            }
+            
+            .format-toolbar {
+                flex-wrap: wrap;
+            }
+            
+            .replace-row {
+                flex-wrap: wrap;
+            }
+            
+            .replace-input {
+                min-width: calc(50% - 4px);
+            }
+
+            .card-back .MathJax,
+            .card-back mjx-container {
+                font-size: 1.1em !important;
+                padding: 0.2em 0.2em !important;
+            }
+
+            .group-number-input {
+                width: 45px;
+                height: 28px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="data-file-notice">
+        💾 数据自动保存到浏览器本地，也可导出为 <strong>TXT 文件</strong> 备份
+    </div>
+
+    <div class="controls" id="viewControls">
+        <button class="btn group-selector-btn" id="groupSelectorBtn">
+            <div class="folder-icon"></div>
+            <span class="group-name">水果</span>
+        </button>
+        <div class="button-row">
+            <button class="btn" id="editGroupBtn">📁 编辑分组</button>
+            <button class="btn" id="editCardBtn">✏️编辑卡片</button>
+            <button class="btn" id="resetBtn">🔄 重新随机</button>
+        </div>
+    </div>
+
+    <div class="cards-grid" id="cardsGrid"></div>
+    <div class="edit-mode hidden" id="editMode"></div>
+    <div class="card-edit-page hidden" id="cardEditPage"></div>
+
+    <div class="bottom-actions" id="bottomActions">
+        <button class="bottom-action-btn delete-selected-btn" onclick="deleteSelectedGroups()">删除选中</button>
+        <button class="bottom-action-btn export-selected-btn" onclick="exportSelectedGroups()">导出选中</button>
+    </div>
+
+    <div class="modal" id="groupModal">
+        <div class="modal-content">
+            <h2 class="modal-title">选择分组</h2>
+            <div class="group-list" id="groupList"></div>
+        </div>
+    </div>
+
+    <input type="file" class="hidden-file-input" id="fileInput" accept=".txt" />
+
+    <script>
+        let appState = {
+            groups: {
+                '水果': ['苹果', '香蕉', '橙子'],
+                '动物': ['老虎', '狮子', '大象'],
+                '化学': ['H_2O（水）', 'CO_2（二氧化碳）', 'NaCl（氯化钠）'],
+                '数学': ['$x^2 + y^2 = z^2$', '$E = mc^2$', '$$\\frac{a^3 + b^3}{c}$$', '$\\frac{1}{2} + \\frac{1}{4} = \\frac{3}{4}$', '$\\int_{0}^{\\infty} e^{-x} dx = 1$']
+            },
+            currentGroup: '水果',
+            currentPage: 'view',
+            editingGroup: null,
+            shuffledCards: [],
+            selectionMode: false,
+            selectedGroups: new Set(),
+            undoHistory: [],
+            lastEditedGroup: null
+        };
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function saveToUndoHistory() {
+            if (appState.editingGroup) {
+                const currentState = [...appState.groups[appState.editingGroup]];
+                appState.undoHistory.push(currentState);
+                
+                if (appState.undoHistory.length > 50) {
+                    appState.undoHistory.shift();
+                }
+            }
+        }
+
+        function undo() {
+            if (appState.undoHistory.length > 0 && appState.editingGroup) {
+                const previousState = appState.undoHistory.pop();
+                appState.groups[appState.editingGroup] = previousState;
+                
+                const textarea = document.getElementById('bulkTextarea');
+                if (textarea) {
+                    textarea.value = previousState.join('\n');
+                }
+                
+                updateCardsFromBulkText();
+            }
+        }
+
+        function getAdaptiveFontSize(text, containerWidth) {
+            const baseSize = 18;
+            const textLength = text.length;
+            
+            if (textLength > 150) {
+                return Math.max(baseSize * 0.75, 14);
+            } else if (textLength > 100) {
+                return Math.max(baseSize * 0.85, 15);
+            } else if (textLength > 60) {
+                return Math.max(baseSize * 0.9, 16);
+            }
+            
+            return baseSize;
+        }
+
+        function formatText(text) {
+            if (text.includes('$') || text.includes('\\(') || text.includes('\\[')) {
+                const lines = text.split('\n').filter(line => line.trim());
+                if (lines.length > 1) {
+                    return lines.map(line => `<div class="card-text-line">${line}</div>`).join('');
+                }
+                return text;
+            }
+            
+            const div = document.createElement('div');
+            div.textContent = text;
+            let escaped = div.innerHTML;
+            
+            escaped = escaped.replace(/([A-Za-z])_([0-9]+)/g, '$1<sub>$2</sub>');
+            escaped = escaped.replace(/([A-Za-z0-9])\^([0-9]+)/g, '$1<sup>$2</sup>');
+            escaped = escaped.replace(/\b(\d+)\/(\d+)\b/g, '<span class="fraction"><span class="numerator">$1</span><span class="denominator">$2</span></span>');
+            
+            const lines = escaped.split('\n').filter(line => line.trim());
+            if (lines.length > 1) {
+                return lines.map(line => `<div class="card-text-line">${line}</div>`).join('');
+            }
+            
+            return escaped;
+        }
+
+        function renderMathJax(element) {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([element]).catch((err) => console.log('MathJax error:', err));
+            }
+        }
+
+        function insertFormat(format) {
+            const textarea = document.getElementById('bulkTextarea');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            
+            let replacement = '';
+            switch(format) {
+                case 'subscript':
+                    replacement = selectedText ? `${selectedText.charAt(0)}_${selectedText.slice(1)}` : 'H_2O';
+                    break;
+                case 'superscript':
+                    replacement = selectedText ? `${selectedText.charAt(0)}^${selectedText.slice(1)}` : 'x^2';
+                    break;
+                case 'fraction':
+                    replacement = selectedText ? `$\\frac{${selectedText}}{分母}$` : '$\\frac{分子}{分母}$';
+                    break;
+                case 'latex':
+                    replacement = selectedText ? `$${selectedText}$` : '$公式$';
+                    break;
+            }
+            
+            const newText = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+            textarea.value = newText;
+            
+            const newPos = start + replacement.length;
+            textarea.setSelectionRange(newPos, newPos);
+            textarea.focus();
+            
+            updateCardsFromBulkText();
+        }
+
+        function replaceText() {
+            const textarea = document.getElementById('bulkTextarea');
+            const findText = document.getElementById('findInput').value;
+            const replaceText = document.getElementById('replaceInput').value;
+            
+            if (!findText) {
+                alert('请输入要查找的文本');
+                return;
+            }
+            
+            const currentPos = textarea.selectionStart;
+            const text = textarea.value;
+            const searchIndex = text.indexOf(findText, currentPos);
+            
+            if (searchIndex !== -1) {
+                textarea.setSelectionRange(searchIndex, searchIndex + findText.length);
+                textarea.focus();
+                
+                const newText = text.substring(0, searchIndex) + replaceText + text.substring(searchIndex + findText.length);
+                textarea.value = newText;
+                
+                const newPos = searchIndex + replaceText.length;
+                textarea.setSelectionRange(newPos, newPos);
+                
+                updateCardsFromBulkText();
+            } else {
+                alert('未找到匹配的文本');
+            }
+        }
+
+        function replaceAllText() {
+            const textarea = document.getElementById('bulkTextarea');
+            const findText = document.getElementById('findInput').value;
+            const replaceText = document.getElementById('replaceInput').value;
+            
+            if (!findText) {
+                alert('请输入要查找的文本');
+                return;
+            }
+            
+            saveToUndoHistory();
+            
+            const originalText = textarea.value;
+            const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+            const matches = originalText.match(regex);
+            
+            if (matches && matches.length > 0) {
+                const newText = originalText.replace(regex, replaceText);
+                textarea.value = newText;
+                updateCardsFromBulkText();
+                alert(`已替换 ${matches.length} 处文本`);
+            } else {
+                alert('未找到匹配的文本');
+            }
+        }
+
+        function toggleSelectionMode() {
+            appState.selectionMode = !appState.selectionMode;
+            appState.selectedGroups.clear();
+            render();
+        }
+
+        function cancelSelection() {
+            appState.selectionMode = false;
+            appState.selectedGroups.clear();
+            render();
+        }
+
+        function selectAllGroups() {
+            const groupNames = Object.keys(appState.groups);
+            groupNames.forEach(name => {
+                appState.selectedGroups.add(name);
+            });
+            render();
+        }
+
+        function toggleGroupSelection(groupName, checkbox) {
+            if (checkbox.checked) {
+                appState.selectedGroups.add(groupName);
+            } else {
+                appState.selectedGroups.delete(groupName);
+            }
+            updateBottomActions();
+        }
+
+        function updateBottomActions() {
+            const bottomActions = document.getElementById('bottomActions');
+            if (appState.selectedGroups.size > 0) {
+                bottomActions.classList.add('show');
+            } else {
+                bottomActions.classList.remove('show');
+            }
+        }
+
+        function deleteSelectedGroups() {
+            if (appState.selectedGroups.size === 0) {
+                alert('请选择要删除的分组');
+                return;
+            }
+
+            const groupNames = Array.from(appState.selectedGroups);
+            const confirmMsg = `确定删除以下分组吗？\n${groupNames.join('\n')}`;
+            
+            if (confirm(confirmMsg)) {
+                groupNames.forEach(name => {
+                    delete appState.groups[name];
+                });
+
+                if (appState.selectedGroups.has(appState.currentGroup)) {
+                    const remaining = Object.keys(appState.groups);
+                    if (remaining.length === 0) {
+                        appState.groups['默认分组'] = [];
+                        appState.currentGroup = '默认分组';
+                    } else {
+                        appState.currentGroup = remaining[0];
+                    }
+                }
+
+                appState.selectedGroups.clear();
+                saveState();
+                cancelSelection();
+            }
+        }
+
+        function exportSelectedGroups() {
+            if (appState.selectedGroups.size === 0) {
+                alert('请选择要导出的分组');
+                return;
+            }
+
+            let exportContent = '';
+            const groupNames = Object.keys(appState.groups);
+            
+            groupNames.forEach(groupName => {
+                if (appState.selectedGroups.has(groupName)) {
+                    exportContent += `#${groupName}\n`;
+                    const cards = appState.groups[groupName] || [];
+                    cards.forEach(card => {
+                        exportContent += card + '\n';
+                    });
+                    exportContent += '\n';
+                }
+            });
+
+            const blob = new Blob([exportContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `记忆卡片_${new Date().toLocaleDateString().replace(/\//g, '-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ 已导出 ${appState.selectedGroups.size} 个分组到 TXT 文件`);
+        }
+
+        function exportAllGroups() {
+            let exportContent = '';
+            const groupNames = Object.keys(appState.groups);
+            
+            groupNames.forEach(groupName => {
+                exportContent += `#${groupName}\n`;
+                const cards = appState.groups[groupName] || [];
+                cards.forEach(card => {
+                    exportContent += card + '\n';
+                });
+                exportContent += '\n';
+            });
+
+            const blob = new Blob([exportContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `记忆卡片_全部_${new Date().toLocaleDateString().replace(/\//g, '-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ 已导出全部 ${groupNames.length} 个分组到 TXT 文件`);
+        }
+
+        function importFile() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                parseImportContent(content);
+            };
+            reader.readAsText(file, 'UTF-8');
+            event.target.value = '';
+        }
+
+        function parseImportContent(content) {
+            const lines = content.split('\n').map(line => line.trim());
+            let currentGroup = null;
+            let importedGroups = {};
+            let importCount = 0;
+
+            lines.forEach(line => {
+                if (line.startsWith('#')) {
+                    currentGroup = line.substring(1).trim();
+                    if (currentGroup) {
+                        importedGroups[currentGroup] = [];
+                    }
+                } else if (line && currentGroup) {
+                    importedGroups[currentGroup].push(line);
+                }
+            });
+
+            Object.keys(importedGroups).forEach(groupName => {
+                if (appState.groups[groupName]) {
+                    if (confirm(`分组"${groupName}"已存在，是否覆盖？`)) {
+                        appState.groups[groupName] = importedGroups[groupName];
+                        importCount++;
+                    }
+                } else {
+                    appState.groups[groupName] = importedGroups[groupName];
+                    importCount++;
+                }
+            });
+
+            if (importCount > 0) {
+                saveState();
+                alert(`✅ 成功导入 ${importCount} 个分组`);
+                render();
+            } else {
+                alert('❌ 没有导入任何分组');
+            }
+        }
+
+        function changeGroupOrder(groupName, newPosition) {
+            const groupNames = Object.keys(appState.groups);
+            const currentIndex = groupNames.indexOf(groupName);
+            
+            if (currentIndex === -1) return;
+            
+            newPosition = Math.max(1, Math.min(newPosition, groupNames.length));
+            const targetIndex = newPosition - 1;
+            
+            if (currentIndex === targetIndex) return;
+            
+            groupNames.splice(currentIndex, 1);
+            groupNames.splice(targetIndex, 0, groupName);
+            
+            const newGroups = {};
+            groupNames.forEach(name => {
+                newGroups[name] = appState.groups[name];
+            });
+            
+            appState.groups = newGroups;
+            saveState();
+            render();
+        }
+
+        function renameGroup(oldName, newName) {
+            if (appState.groups[newName] && newName !== oldName) {
+                alert('分组名称已存在');
+                render();
+                return;
+            }
+            
+            const groupNames = Object.keys(appState.groups);
+            const newGroups = {};
+            
+            groupNames.forEach(name => {
+                if (name === oldName) {
+                    newGroups[newName] = appState.groups[oldName];
+                } else {
+                    newGroups[name] = appState.groups[name];
+                }
+            });
+            
+            appState.groups = newGroups;
+            
+            if (appState.currentGroup === oldName) {
+                appState.currentGroup = newName;
+            }
+            
+            if (appState.lastEditedGroup === oldName) {
+                appState.lastEditedGroup = newName;
+            }
+            
+            saveState();
+            render();
+        }
+
+        function deleteGroup(groupName) {
+            if (confirm(`确定删除分组"${groupName}"吗？`)) {
+                delete appState.groups[groupName];
+                
+                const remainingGroups = Object.keys(appState.groups);
+                if (remainingGroups.length === 0) {
+                    appState.groups['默认分组'] = [];
+                    appState.currentGroup = '默认分组';
+                } else if (appState.currentGroup === groupName) {
+                    appState.currentGroup = remainingGroups[0];
+                }
+                
+                saveState();
+                render();
+            }
+        }
+
+        function addNewGroup() {
+            const groupName = prompt('请输入新分组名称：');
+            if (!groupName) return;
+            
+            const trimmedName = groupName.trim();
+            if (!trimmedName) {
+                alert('分组名称不能为空');
+                return;
+            }
+            
+            if (appState.groups[trimmedName]) {
+                alert('分组名称已存在');
+                return;
+            }
+            
+            appState.groups[trimmedName] = [];
+            appState.lastEditedGroup = 'new';
+            saveState();
+            render();
+            
+            setTimeout(() => {
+                const newGroupCard = document.querySelector(`[data-group="${trimmedName}"]`);
+                if (newGroupCard) {
+                    newGroupCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('memoryCardsState', JSON.stringify({
+                    groups: appState.groups,
+                    currentGroup: appState.currentGroup,
+                    lastEditedGroup: appState.lastEditedGroup
+                }));
+            } catch (e) {
+                console.error('保存状态失败:', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('memoryCardsState');
+                if (saved) {
+                    const state = JSON.parse(saved);
+                    if (state.groups) {
+                        appState.groups = state.groups;
+                        appState.currentGroup = state.currentGroup || Object.keys(state.groups)[0] || '默认分组';
+                        appState.lastEditedGroup = state.lastEditedGroup || null;
+                    }
+                }
+            } catch (e) {
+                console.error('加载状态失败:', e);
+            }
+        }
+
+        function shuffleCurrentGroup() {
+            const cards = appState.groups[appState.currentGroup] || [];
+            appState.shuffledCards = shuffleArray(cards);
+            saveState();
+        }
+
+        function init() {
+            loadState();
+            shuffleCurrentGroup();
+            render();
+            attachEvents();
+        }
+
+        function render() {
+            if (appState.currentPage === 'view') {
+                renderViewMode();
+            } else if (appState.currentPage === 'edit') {
+                renderEditMode();
+            } else if (appState.currentPage === 'cardEdit') {
+                renderCardEditPage();
+            }
+        }
+
+        function renderViewMode() {
+            const grid = document.getElementById('cardsGrid');
+            const editMode = document.getElementById('editMode');
+            const cardEditPage = document.getElementById('cardEditPage');
+            const bottomActions = document.getElementById('bottomActions');
+            const viewControls = document.getElementById('viewControls');
+            
+            grid.classList.remove('hidden');
+            editMode.classList.add('hidden');
+            cardEditPage.classList.add('hidden');
+            bottomActions.classList.remove('show');
+            viewControls.classList.remove('hidden');
+            
+            document.querySelector('#groupSelectorBtn .group-name').textContent = appState.currentGroup;
+            
+            grid.innerHTML = appState.shuffledCards.map((text, index) => `
+                <div class="card-container">
+                    <div class="card" data-index="${index}">
+                        <div class="card-face card-front">
+                            <div class="card-number">${index + 1}</div>
+                        </div>
+                        <div class="card-face card-back">
+                            ${formatText(text)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            setTimeout(() => {
+                document.querySelectorAll('.card-back').forEach((cardBack, index) => {
+                    const text = appState.shuffledCards[index];
+                    const containerWidth = cardBack.offsetWidth;
+                    const fontSize = getAdaptiveFontSize(text, containerWidth);
+                    if (fontSize !== 18) {
+                        cardBack.style.fontSize = fontSize + 'px';
+                    }
+                    
+                    renderMathJax(cardBack);
+                });
+            }, 100);
+
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', function() {
+                    if (!this.classList.contains('flipped')) {
+                        this.classList.add('flipped');
+                    }
+                });
+            });
+        }
+
+        function resetCardsWithAnimation() {
+            const cards = document.querySelectorAll('.card.flipped');
+            
+            cards.forEach(card => {
+                card.classList.remove('flipped');
+            });
+        }
+
+        function renderEditMode() {
+            const grid = document.getElementById('cardsGrid');
+            const editMode = document.getElementById('editMode');
+            const cardEditPage = document.getElementById('cardEditPage');
+            const viewControls = document.getElementById('viewControls');
+            
+            grid.classList.add('hidden');
+            editMode.classList.remove('hidden');
+            cardEditPage.classList.add('hidden');
+            viewControls.classList.add('hidden');
+            
+            const groupNames = Object.keys(appState.groups);
+            
+            editMode.innerHTML = `
+                <div class="edit-mode-header">
+                    <button class="back-home-btn" onclick="goHome()">← 返回主界面</button>
+                    <div class="header-actions">
+                        ${appState.selectionMode ? `
+                            <button class="action-btn select-all-btn" onclick="selectAllGroups()">全选</button>
+                            <button class="action-btn cancel-btn" onclick="cancelSelection()">取消</button>
+                        ` : `
+                            <button class="action-btn" onclick="toggleSelectionMode()">选择</button>
+                            <button class="action-btn" onclick="importFile()">导入TXT</button>
+                            <button class="action-btn" onclick="exportAllGroups()">导出全部</button>
+                        `}
+                    </div>
+                </div>
+            ` + groupNames.map((name, index) => `
+                <div class="group-card" data-group="${name}">
+                    ${appState.selectionMode ? 
+                        `<input type="checkbox" class="group-checkbox show" 
+                                onchange="toggleGroupSelection('${name}', this)"
+                                ${appState.selectedGroups.has(name) ? 'checked' : ''}>` : ''
+                    }
+                    <div class="group-header">
+                        <input type="number" 
+                               class="group-number-input" 
+                               value="${index + 1}" 
+                               min="1" 
+                               max="${groupNames.length}"
+                               onchange="changeGroupOrder('${name}', parseInt(this.value))"
+                               ${appState.selectionMode ? 'disabled' : ''}>
+                        <div class="group-title" contenteditable="${!appState.selectionMode}" title="${name}">${name}</div>
+                    </div>
+                    <div class="group-info">
+                        <span class="card-count">共 ${appState.groups[name].length} 张卡片</span>
+                        ${!appState.selectionMode ? 
+                            `<div class="group-actions">
+                                <button class="edit-cards-btn" onclick="editCards('${name}')">编辑卡片</button>
+                                <button class="delete-group-btn" onclick="deleteGroup('${name}')">删除</button>
+                            </div>` : ''
+                        }
+                    </div>
+                </div>
+            `).join('') + (!appState.selectionMode ? '<button class="add-group-btn" onclick="addNewGroup()">+ 新增分组</button>' : '');
+
+            attachEditEvents();
+            updateBottomActions();
+
+            if (appState.lastEditedGroup && appState.lastEditedGroup !== 'new') {
+                setTimeout(() => {
+                    const targetCard = document.querySelector(`[data-group="${appState.lastEditedGroup}"]`);
+                    if (targetCard) {
+                        targetCard.scrollIntoView({ behavior: 'auto', block: 'center' });
+                    }
+                }, 200);
+            }
+        }
+
+        function renderCardEditPage() {
+            const grid = document.getElementById('cardsGrid');
+            const editMode = document.getElementById('editMode');
+            const cardEditPage = document.getElementById('cardEditPage');
+            const bottomActions = document.getElementById('bottomActions');
+            const viewControls = document.getElementById('viewControls');
+            
+            grid.classList.add('hidden');
+            editMode.classList.add('hidden');
+            cardEditPage.classList.remove('hidden');
+            bottomActions.classList.remove('show');
+            viewControls.classList.add('hidden');
+            
+            const cards = appState.groups[appState.editingGroup] || [];
+            const cardText = cards.join('\n');
+            
+            cardEditPage.innerHTML = `
+                <div class="card-edit-header">
+                    <h2 class="card-edit-title">${appState.editingGroup} - 编辑卡片</h2>
+                    <div class="card-edit-nav">
+                        <button class="nav-btn back-group-btn" onclick="goBackFromCardEdit()">← 返回分组</button>
+                        <button class="nav-btn back-home-nav-btn" onclick="goHome()">🏠 返回主界面</button>
+                    </div>
+                </div>
+                <div class="card-list">
+                    <div class="format-toolbar">
+                        <button class="format-btn" onclick="insertFormat('subscript')" title="下标：H_2O">下标</button>
+                        <button class="format-btn" onclick="insertFormat('superscript')" title="上标：x^2">上标</button>
+                        <button class="format-btn" onclick="insertFormat('fraction')" title="LaTeX分数">$\\frac{a}{b}$</button>
+                        <button class="format-btn" onclick="insertFormat('latex')" title="LaTeX公式">$公式$</button>
+                    </div>
+                    <textarea class="bulk-textarea" id="bulkTextarea" 
+                            placeholder="每行一张卡片...&#10;支持LaTeX: $公式$ 或 $$公式$$&#10;示例: $\\frac{1}{2}$ 或 $x^2 + y^2 = z^2$"
+                            oninput="updateCardsFromBulkText()">${cardText}</textarea>
+                    <div class="bulk-stats">
+                        <span class="stats-info" id="cardStats">共 ${cards.length} 张卡片</span>
+                        <button class="undo-btn" onclick="undo()" ${appState.undoHistory.length === 0 ? 'disabled' : ''}>↶ 撤销</button>
+                    </div>
+                    <div class="replace-section">
+                        <div class="replace-title">🔍 文本替换</div>
+                        <div class="replace-row">
+                            <input type="text" class="replace-input" id="findInput" placeholder="查找文本">
+                            <input type="text" class="replace-input" id="replaceInput" placeholder="替换为">
+                            <button class="replace-btn" onclick="replaceText()">替换下一个</button>
+                            <button class="replace-btn replace-all-btn" onclick="replaceAllText()">全部替换</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            attachBulkEditEvents();
+        }
+
+        function editCards(groupName) {
+            appState.currentPage = 'cardEdit';
+            appState.editingGroup = groupName;
+            appState.lastEditedGroup = groupName;
+            appState.undoHistory = [];
+            render();
+        }
+
+        function updateCardsFromBulkText() {
+            const textarea = document.getElementById('bulkTextarea');
+            const text = textarea.value;
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            appState.groups[appState.editingGroup] = lines;
+            
+            if (appState.editingGroup === appState.currentGroup) {
+                shuffleCurrentGroup();
+            }
+            
+            const statsEl = document.getElementById('cardStats');
+            if (statsEl) {
+                statsEl.textContent = `共 ${lines.length} 张卡片`;
+            }
+            
+            const undoBtn = document.querySelector('.undo-btn');
+            if (undoBtn) {
+                undoBtn.disabled = appState.undoHistory.length === 0;
+            }
+            
+            saveState();
+        }
+
+        function attachBulkEditEvents() {
+            const textarea = document.getElementById('bulkTextarea');
+            if (!textarea) return;
+            
+            let isFirstEdit = true;
+            
+            textarea.addEventListener('input', function() {
+                if (isFirstEdit) {
+                    saveToUndoHistory();
+                    isFirstEdit = false;
+                }
+                updateCardsFromBulkText();
+            });
+            
+            textarea.addEventListener('blur', function() {
+                saveToUndoHistory();
+            });
+            
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }, 100);
+        }
+
+        function attachEditEvents() {
+            document.querySelectorAll('.group-title').forEach(titleEl => {
+                const groupName = titleEl.textContent.trim();
+                
+                titleEl.addEventListener('blur', function() {
+                    const newName = this.textContent.trim();
+                    if (newName && newName !== groupName) {
+                        renameGroup(groupName, newName);
+                    } else if (!newName) {
+                        this.textContent = groupName;
+                    }
+                });
+                
+                titleEl.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.blur();
+                    }
+                });
+            });
+        }
+
+        function goBackFromCardEdit() {
+            appState.currentPage = 'edit';
+            appState.editingGroup = null;
+            appState.undoHistory = [];
+            render();
+        }
+
+        function goHome() {
+            if (appState.currentPage === 'cardEdit' && appState.editingGroup) {
+                appState.currentGroup = appState.editingGroup;
+                shuffleCurrentGroup();
+            }
+            
+            appState.currentPage = 'view';
+            appState.editingGroup = null;
+            appState.selectionMode = false;
+            appState.selectedGroups.clear();
+            appState.undoHistory = [];
+            render();
+        }
+
+        function showGroupModal() {
+            const modal = document.getElementById('groupModal');
+            const groupList = document.getElementById('groupList');
+            
+            groupList.innerHTML = Object.keys(appState.groups).map((name, index) => `
+                <div class="group-item ${name === appState.currentGroup ? 'active' : ''}" 
+                     onclick="selectGroup('${name}')">
+                    <div class="group-item-number">${index + 1}</div>
+                    <span>${name}</span>
+                </div>
+            `).join('');
+            
+            modal.classList.add('show');
+        }
+
+        function selectGroup(groupName) {
+            appState.currentGroup = groupName;
+            shuffleCurrentGroup();
+            hideGroupModal();
+            render();
+        }
+
+        function hideGroupModal() {
+            document.getElementById('groupModal').classList.remove('show');
+        }
+
+        function resetCards() {
+            resetCardsWithAnimation();
+        }
+
+        function attachEvents() {
+            document.getElementById('groupSelectorBtn').addEventListener('click', showGroupModal);
+            
+            document.getElementById('editGroupBtn').addEventListener('click', () => {
+                appState.currentPage = 'edit';
+                appState.lastEditedGroup = null;
+                render();
+            });
+            
+            document.getElementById('editCardBtn').addEventListener('click', () => {
+                editCards(appState.currentGroup);
+            });
+            
+            document.getElementById('resetBtn').addEventListener('click', resetCards);
+            
+            document.getElementById('groupModal').addEventListener('click', (e) => {
+                if (e.target.id === 'groupModal') {
+                    hideGroupModal();
+                }
+            });
+
+            document.getElementById('fileInput').addEventListener('change', handleFileImport);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
