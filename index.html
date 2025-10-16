@@ -958,6 +958,111 @@
             display: none !important;
         }
 
+        /* 👇 新增：导入模态框样式 */
+        .import-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .import-option-btn {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            font-weight: 500;
+            outline: none;
+        }
+
+        .import-option-btn:hover {
+            background: #ff8fb4;
+            color: white;
+            border-color: #ff8fb4;
+            transform: translateX(5px);
+        }
+
+        .import-option-btn .import-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .import-option-btn .import-text {
+            flex: 1;
+            text-align: left;
+        }
+
+        .url-section {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 1px solid #e1ecf4;
+        }
+
+        .url-section.show {
+            display: flex;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .url-input:focus {
+            border-color: #ff8fb4;
+        }
+
+        .confirm-url-btn {
+            padding: 12px 24px;
+            background: #9b7ec4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .confirm-url-btn:hover {
+            background: #8567b3;
+            transform: translateY(-2px);
+        }
+
+        .cancel-import-btn {
+            width: 100%;
+            padding: 12px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .cancel-import-btn:hover {
+            background: #5a6268;
+        }
+
         @media (max-width: 480px) {
             .btn {
                 font-size: 12px;
@@ -1048,6 +1153,32 @@
         <div class="modal-content">
             <h2 class="modal-title">选择分组</h2>
             <div class="group-list" id="groupList"></div>
+        </div>
+    </div>
+
+    <!-- 👇 新增：导入模态框 -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <h2 class="modal-title">导入TXT文件</h2>
+            <div class="import-options">
+                <button class="import-option-btn local-import" onclick="importFromLocal()">
+                    <span class="import-icon">📁</span>
+                    <span class="import-text">本地导入</span>
+                </button>
+                <button class="import-option-btn online-import" onclick="toggleUrlSection()">
+                    <span class="import-icon">🌐</span>
+                    <span class="import-text">在线导入</span>
+                </button>
+            </div>
+            <div class="url-section" id="urlSection">
+                <input type="text" 
+                       class="url-input" 
+                       id="importUrlInput" 
+                       placeholder="输入文件URL地址"
+                       value="https://raw.githubusercontent.com/mical8725/flipCard/refs/heads/main/cardUpdate.txt">
+                <button class="confirm-url-btn" onclick="importFromUrl()">确认导入</button>
+            </div>
+            <button class="cancel-import-btn" onclick="hideImportModal()">取消</button>
         </div>
     </div>
 
@@ -1204,16 +1335,16 @@
             let replacement = '';
             switch(format) {
                 case 'subscript':
-                    replacement = selectedText ? `${selectedText.charAt(0)}_${selectedText.slice(1)}` : 'H_2O';
+                    replacement = selectedText ? `${selectedText.charAt(0)}_${selectedText.slice(1)}` : 'v_0';
                     break;
                 case 'superscript':
-                    replacement = selectedText ? `${selectedText.charAt(0)}^${selectedText.slice(1)}` : 'x^2';
+                    replacement = selectedText ? `${selectedText.charAt(0)}^${selectedText.slice(1)}` : 't^2';
                     break;
                 case 'fraction':
-                    replacement = selectedText ? `$\\frac{${selectedText}}{分母}$` : '$\\frac{分子}{分母}$';
+                    replacement = selectedText ? `$\\frac{${selectedText}}{分母}$` : '$\\frac{1}{x}$';
                     break;
                 case 'latex':
-                    replacement = selectedText ? `$${selectedText}$` : '$公式$';
+                    replacement = selectedText ? `$${selectedText}$` : '$$';
                     break;
             }
             
@@ -1338,8 +1469,7 @@
                 if (appState.selectedGroups.has(appState.currentGroup)) {
                     const remaining = Object.keys(appState.groups);
                     if (remaining.length === 0) {
-                        appState.groups['默认分组'] = [];
-                        appState.currentGroup = '默认分组';
+                        appState.currentGroup = null;
                     } else {
                         appState.currentGroup = remaining[0];
                     }
@@ -1380,8 +1510,6 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
-            alert(`✅ 已导出 ${appState.selectedGroups.size} 个分组到 TXT 文件`);
         }
 
         function exportAllGroups() {
@@ -1406,9 +1534,148 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
-            alert(`✅ 已导出全部 ${groupNames.length} 个分组到 TXT 文件`);
+
         }
+
+        // 👇 在这里添加新的导入相关函数
+        function showImportModal() {
+            const modal = document.getElementById('importModal');
+            modal.classList.add('show');
+        }
+
+        function hideImportModal() {
+            const modal = document.getElementById('importModal');
+            const urlSection = document.getElementById('urlSection');
+            modal.classList.remove('show');
+            urlSection.classList.remove('show');
+        }
+
+        function toggleUrlSection() {
+            const urlSection = document.getElementById('urlSection');
+            urlSection.classList.toggle('show');
+        }
+
+        function importFromLocal() {
+            hideImportModal();
+            document.getElementById('fileInput').click();
+        }
+
+        async function importFromUrl() {
+            const urlInput = document.getElementById('importUrlInput');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('❌ 请输入文件地址');
+                return;
+            }
+            
+            try {
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+                
+                const text = await response.text();
+                processImportedText(text);
+                hideImportModal();
+                alert('✅ 在线导入成功！');
+            } catch (error) {
+                console.error('在线导入失败:', error);
+                alert(`❌ 在线导入失败：${error.message}\n\n请检查：\n1. URL地址是否正确\n2. 文件是否允许跨域访问\n3. 网络连接是否正常`);
+            }
+        }
+
+        function processImportedText(text) {
+            const lines = text.split('\n');
+            let currentGroup = null;
+            let importedGroups = {};
+            
+            lines.forEach(line => {
+                line = line.trim();
+                
+                if (line.startsWith('#')) {
+                    currentGroup = line.substring(1).trim();
+                    if (currentGroup) {
+                        importedGroups[currentGroup] = [];
+                    }
+                } else if (line && currentGroup) {
+                    importedGroups[currentGroup].push(line);
+                }
+            });
+
+            if (Object.keys(importedGroups).length === 0) {
+                alert('❌ 文件格式不正确或为空');
+                return;
+            }
+
+            // 检查是否有同名分组
+            const conflictGroups = Object.keys(importedGroups).filter(groupName => 
+                appState.groups[groupName] && appState.groups[groupName].length > 0
+            );
+
+            let mergeOption = false;
+            
+            // 只有存在冲突时才询问
+            if (conflictGroups.length > 0) {
+                const conflictNames = conflictGroups.join('、');
+                mergeOption = confirm(`发现同名分组：${conflictNames}\n\n点击"确定"：合并内容（保留原有+新增）\n点击"取消"：完全覆盖原分组`);
+            }
+            
+            Object.keys(importedGroups).forEach(groupName => {
+                if (appState.groups[groupName] && appState.groups[groupName].length > 0 && mergeOption) {
+                    // 合并：保留原有内容，添加新内容（去重）
+                    const existingCards = appState.groups[groupName];
+                    const newCards = importedGroups[groupName];
+                    const mergedCards = [...existingCards];
+                    
+                    newCards.forEach(card => {
+                        if (!mergedCards.includes(card)) {
+                            mergedCards.push(card);
+                        }
+                    });
+                    
+                    appState.groups[groupName] = mergedCards;
+                } else {
+                    // 覆盖或新建
+                    appState.groups[groupName] = importedGroups[groupName];
+                }
+            });
+
+            const firstImportedGroup = Object.keys(importedGroups)[0];
+            if (firstImportedGroup) {
+                appState.currentGroup = firstImportedGroup;
+            }
+
+            saveState();
+            render();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.name.endsWith('.txt')) {
+                alert('❌ 请选择 TXT 文件');
+                e.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    processImportedText(event.target.result);
+                    alert('✅ 本地导入成功！');
+                } catch (error) {
+                    console.error('导入失败:', error);
+                    alert('❌ 导入失败，请检查文件格式');
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file, 'UTF-8');
+        });
+        // 👆 新增的导入功能到此结束
+
 
         function importFile() {
             document.getElementById('fileInput').click();
@@ -1720,7 +1987,8 @@
                             <button class="action-btn cancel-btn" onclick="cancelSelection()">取消</button>
                         ` : `
                             <button class="action-btn" onclick="toggleSelectionMode()">选择</button>
-                            <button class="action-btn" onclick="importFile()">导入TXT</button>
+                            <button class="action-btn" onclick="showImportModal()">导入</button>
+                            
                             <button class="action-btn" onclick="exportAllGroups()">导出全部</button>
                         `}
                     </div>
@@ -1787,8 +2055,8 @@
                     <div class="format-toolbar">
                         <button class="format-btn" onclick="insertFormat('subscript')" title="下标：H_2O">下标</button>
                         <button class="format-btn" onclick="insertFormat('superscript')" title="上标：x^2">上标</button>
-                        <button class="format-btn" onclick="insertFormat('fraction')" title="LaTeX分数">$\\frac{a}{b}$</button>
-                        <button class="format-btn" onclick="insertFormat('latex')" title="LaTeX公式">$公式$</button>
+                        <button class="format-btn" onclick="insertFormat('fraction')" title="LaTeX分数">分数</button>
+                        <button class="format-btn" onclick="insertFormat('latex')" title="LaTeX公式">行内公式</button>
                     </div>
                     <textarea class="bulk-textarea" id="bulkTextarea" 
                             placeholder="每行一张卡片...&#10;支持LaTeX: $公式$ 或 $$公式$$&#10;示例: $\\frac{1}{2}$ 或 $x^2 + y^2 = z^2$"
@@ -1966,33 +2234,20 @@
                 }
             });
 
-            document.getElementById('fileInput').addEventListener('change', handleFileImport);
 
             // 初始化音频系统（用户首次交互时）
             document.addEventListener('click', () => {
                 soundManager.initAudio();
             }, { once: true });
         }
-
+        
+        document.getElementById('importModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                hideImportModal();
+            }
+        });
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
