@@ -1063,6 +1063,7 @@
             selectedGroups: new Set(),
             undoHistory: [],
             lastEditedGroup: null
+
         };
 
         // 使用真实音频文件的音效管理器
@@ -1653,6 +1654,7 @@
         }
 
         async function resetCardsWithAnimation() {
+            appState.isResetting = true;
             // 先重新洗牌
             shuffleCurrentGroup();
             
@@ -1661,6 +1663,7 @@
             if (cards.length === 0) {
                 // 如果没有翻转的卡片，直接重新渲染
                 render();
+                appState.isResetting = false;
                 return;
             }
             
@@ -1671,14 +1674,15 @@
                 
                 // 动画完成后移除flip-back类
                 setTimeout(() => {
-                    card.classList.remove('flip-back');
-                }, 300);
+                    card.classList.remove('flipback');
+                }, 500);
             });
             
             // 在动画完成后重新渲染
             setTimeout(() => {
                 render();
-            }, 320);
+                appState.isResetting = false;
+            }, 520);
         }
 
         function renderEditMode() {
