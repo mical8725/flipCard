@@ -172,7 +172,26 @@
             max-width: 1000px;
             margin: 0 auto;
         }
+        
+        /* 响应式卡片尺寸 */
+        @media (min-width: 600px) {
+            .card-container {
+                height: 150px;
+            }
+            .cards-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+        }
 
+        @media (min-width: 1024px) {
+            .card-container {
+                height: 150px;
+            }
+            .cards-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+        }
+        
         @media (max-width: 600px) {
             body {
                 padding: 20px 20px 50px 20px;
@@ -2261,6 +2280,7 @@
     </script>
 </body>
 </html>
+
 
 
 
