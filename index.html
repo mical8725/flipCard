@@ -1067,6 +1067,7 @@
             selectionMode: false,
             selectedGroups: new Set(),
             undoHistory: [],
+            savedScrollPosition: 0,  // 👈 添加这一行：保存滚动位置
             lastEditedGroup: null
 
         };
@@ -1755,14 +1756,6 @@
             attachEditEvents();
             updateBottomActions();
 
-            if (appState.lastEditedGroup && appState.lastEditedGroup !== 'new') {
-                setTimeout(() => {
-                    const targetCard = document.querySelector(`[data-group="${appState.lastEditedGroup}"]`);
-                    if (targetCard) {
-                        targetCard.scrollIntoView({ behavior: 'auto', block: 'center' });
-                    }
-                }, 200);
-            }
         }
 
         function renderCardEditPage() {
@@ -1819,6 +1812,8 @@
         }
 
         function editCards(groupName) {
+            // 👈 保存当前滚动位置
+            appState.savedScrollPosition = window.scrollY || window.pageYOffset;
             appState.currentPage = 'cardEdit';
             appState.editingGroup = groupName;
             appState.lastEditedGroup = groupName;
@@ -1901,6 +1896,13 @@
             appState.editingGroup = null;
             appState.undoHistory = [];
             render();
+            // 👈 恢复之前保存的滚动位置
+            setTimeout(() => {
+                window.scrollTo({
+                    top: appState.savedScrollPosition,
+                    behavior: 'auto'  // 瞬间滚动，不要动画
+                });
+            }, 1);
         }
 
         function goHome() {
@@ -1980,6 +1982,7 @@
     </script>
 </body>
 </html>
+
 
 
 
