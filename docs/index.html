@@ -46,7 +46,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: linear-gradient(135deg, #ffe4f0 0%, #ffd4e8 50%, #e8d4ff 100%);
             min-height: 100vh;
-            padding: 40px 20px 60px 20px;
+            padding: 20px 20px 60px 20px;
         }
 
         .controls {
@@ -163,7 +163,7 @@
 
         @media (max-width: 600px) {
             body {
-                padding: 30px 20px 50px 20px;
+                padding: 20px 20px 50px 20px;
             }
             
             .controls {
@@ -194,7 +194,7 @@
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
-            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             outline: none;
         }
@@ -202,6 +202,20 @@
         .card.flipped {
             transform: rotateY(180deg);
             pointer-events: none;
+        }
+
+        /* 添加翻转回正面的动画 */
+        .card.flip-back {
+            animation: flipBackToFront 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes flipBackToFront {
+            0% {
+                transform: rotateY(180deg);
+            }
+            100% {
+                transform: rotateY(0deg);
+            }
         }
 
         .card-face {
@@ -938,21 +952,6 @@
             display: none !important;
         }
 
-        .data-file-notice {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            color: #856404;
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .data-file-notice strong {
-            color: #ff6b9d;
-        }
-
         @media (max-width: 480px) {
             .btn {
                 font-size: 12px;
@@ -1018,10 +1017,6 @@
     </style>
 </head>
 <body>
-    <div class="data-file-notice">
-        💾 数据自动保存到浏览器本地，也可导出为 <strong>TXT 文件</strong> 备份
-    </div>
-
     <div class="controls" id="viewControls">
         <button class="btn group-selector-btn" id="groupSelectorBtn">
             <div class="folder-icon"></div>
@@ -1069,6 +1064,48 @@
             undoHistory: [],
             lastEditedGroup: null
         };
+
+        // 使用真实音频文件的音效管理器
+        class SoundManager {
+            constructor() {
+                this.flipSound = null;
+                this.initialized = false;
+            }
+
+            async initAudio() {
+                if (this.initialized) return;
+                
+                try {
+                    // 预加载翻卡片音效
+                    this.flipSound = new Audio('https://gitee.com/mical007/card-memory/raw/master/audio/flip_card.mp3');
+                    this.flipSound.preload = 'auto';
+                    this.flipSound.volume = 0.5; // 设置音量为50%
+                    
+                    this.initialized = true;
+                    console.log('音效已加载');
+                } catch (e) {
+                    console.log('音效加载失败:', e);
+                }
+            }
+
+            async playFlipSound() {
+                if (!this.flipSound) {
+                    await this.initAudio();
+                }
+                
+                if (this.flipSound) {
+                    try {
+                        // 重置音频到开始位置，以便连续播放
+                        this.flipSound.currentTime = 0;
+                        await this.flipSound.play();
+                    } catch (e) {
+                        console.log('播放音效失败:', e);
+                    }
+                }
+            }
+        }
+
+        const soundManager = new SoundManager();
 
         function shuffleArray(array) {
             const shuffled = [...array];
@@ -1447,45 +1484,40 @@
         function renameGroup(oldName, newName) {
             if (appState.groups[newName] && newName !== oldName) {
                 alert('分组名称已存在');
-                render();
                 return;
             }
             
-            const groupNames = Object.keys(appState.groups);
-            const newGroups = {};
-            
-            groupNames.forEach(name => {
-                if (name === oldName) {
-                    newGroups[newName] = appState.groups[oldName];
-                } else {
-                    newGroups[name] = appState.groups[name];
+            if (newName !== oldName) {
+                const cards = appState.groups[oldName];
+                delete appState.groups[oldName];
+                appState.groups[newName] = cards;
+                
+                if (appState.currentGroup === oldName) {
+                    appState.currentGroup = newName;
                 }
-            });
-            
-            appState.groups = newGroups;
-            
-            if (appState.currentGroup === oldName) {
-                appState.currentGroup = newName;
-            }
-            
-            if (appState.lastEditedGroup === oldName) {
+                
+                if (appState.editingGroup === oldName) {
+                    appState.editingGroup = newName;
+                }
+                
                 appState.lastEditedGroup = newName;
+                saveState();
+                render();
             }
-            
-            saveState();
-            render();
         }
 
         function deleteGroup(groupName) {
             if (confirm(`确定删除分组"${groupName}"吗？`)) {
                 delete appState.groups[groupName];
                 
-                const remainingGroups = Object.keys(appState.groups);
-                if (remainingGroups.length === 0) {
-                    appState.groups['默认分组'] = [];
-                    appState.currentGroup = '默认分组';
-                } else if (appState.currentGroup === groupName) {
-                    appState.currentGroup = remainingGroups[0];
+                if (appState.currentGroup === groupName) {
+                    const remaining = Object.keys(appState.groups);
+                    if (remaining.length === 0) {
+                        appState.groups['默认分组'] = [];
+                        appState.currentGroup = '默认分组';
+                    } else {
+                        appState.currentGroup = remaining[0];
+                    }
                 }
                 
                 saveState();
@@ -1494,10 +1526,9 @@
         }
 
         function addNewGroup() {
-            const groupName = prompt('请输入新分组名称：');
-            if (!groupName) return;
+            const name = prompt('请输入新分组的名称：');
+            const trimmedName = name ? name.trim() : '';
             
-            const trimmedName = groupName.trim();
             if (!trimmedName) {
                 alert('分组名称不能为空');
                 return;
@@ -1512,67 +1543,66 @@
             appState.lastEditedGroup = 'new';
             saveState();
             render();
-            
-            setTimeout(() => {
-                const newGroupCard = document.querySelector(`[data-group="${trimmedName}"]`);
-                if (newGroupCard) {
-                    newGroupCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }, 100);
-        }
-
-        function saveState() {
-            try {
-                localStorage.setItem('memoryCardsState', JSON.stringify({
-                    groups: appState.groups,
-                    currentGroup: appState.currentGroup,
-                    lastEditedGroup: appState.lastEditedGroup
-                }));
-            } catch (e) {
-                console.error('保存状态失败:', e);
-            }
-        }
-
-        function loadState() {
-            try {
-                const saved = localStorage.getItem('memoryCardsState');
-                if (saved) {
-                    const state = JSON.parse(saved);
-                    if (state.groups) {
-                        appState.groups = state.groups;
-                        appState.currentGroup = state.currentGroup || Object.keys(state.groups)[0] || '默认分组';
-                        appState.lastEditedGroup = state.lastEditedGroup || null;
-                    }
-                }
-            } catch (e) {
-                console.error('加载状态失败:', e);
-            }
         }
 
         function shuffleCurrentGroup() {
             const cards = appState.groups[appState.currentGroup] || [];
             appState.shuffledCards = shuffleArray(cards);
-            saveState();
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('memoryCards');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    appState.groups = data.groups || appState.groups;
+                    appState.currentGroup = data.currentGroup || appState.currentGroup;
+                    
+                    if (!appState.groups[appState.currentGroup]) {
+                        appState.currentGroup = Object.keys(appState.groups)[0] || '水果';
+                    }
+                } catch (e) {
+                    console.log('Failed to load state:', e);
+                }
+            }
+            shuffleCurrentGroup();
+        }
+
+        function saveState() {
+            const data = {
+                groups: appState.groups,
+                currentGroup: appState.currentGroup
+            };
+            localStorage.setItem('memoryCards', JSON.stringify(data));
         }
 
         function init() {
             loadState();
-            shuffleCurrentGroup();
             render();
             attachEvents();
         }
 
         function render() {
-            if (appState.currentPage === 'view') {
-                renderViewMode();
-            } else if (appState.currentPage === 'edit') {
+            updateGroupSelector();
+            
+            if (appState.currentPage === 'edit') {
                 renderEditMode();
             } else if (appState.currentPage === 'cardEdit') {
                 renderCardEditPage();
+            } else {
+                renderCards();
             }
         }
 
-        function renderViewMode() {
+        function updateGroupSelector() {
+            const groupSelectorBtn = document.getElementById('groupSelectorBtn');
+            const groupNameEl = groupSelectorBtn.querySelector('.group-name');
+            if (groupNameEl) {
+                groupNameEl.textContent = appState.currentGroup;
+            }
+        }
+
+        function renderCards() {
             const grid = document.getElementById('cardsGrid');
             const editMode = document.getElementById('editMode');
             const cardEditPage = document.getElementById('cardEditPage');
@@ -1585,16 +1615,14 @@
             bottomActions.classList.remove('show');
             viewControls.classList.remove('hidden');
             
-            document.querySelector('#groupSelectorBtn .group-name').textContent = appState.currentGroup;
-            
-            grid.innerHTML = appState.shuffledCards.map((text, index) => `
+            grid.innerHTML = appState.shuffledCards.map((card, index) => `
                 <div class="card-container">
-                    <div class="card" data-index="${index}">
+                    <div class="card">
                         <div class="card-face card-front">
                             <div class="card-number">${index + 1}</div>
                         </div>
                         <div class="card-face card-back">
-                            ${formatText(text)}
+                            ${formatText(card)}
                         </div>
                     </div>
                 </div>
@@ -1614,20 +1642,43 @@
             }, 100);
 
             document.querySelectorAll('.card').forEach(card => {
-                card.addEventListener('click', function() {
+                card.addEventListener('click', async function() {
                     if (!this.classList.contains('flipped')) {
                         this.classList.add('flipped');
+                        // 播放翻转音效
+                        await soundManager.playFlipSound();
                     }
                 });
             });
         }
 
-        function resetCardsWithAnimation() {
+        async function resetCardsWithAnimation() {
+            // 先重新洗牌
+            shuffleCurrentGroup();
+            
             const cards = document.querySelectorAll('.card.flipped');
             
-            cards.forEach(card => {
+            if (cards.length === 0) {
+                // 如果没有翻转的卡片，直接重新渲染
+                render();
+                return;
+            }
+            
+            // 所有已翻转的卡片同时翻转回正面（无音效）
+            cards.forEach((card) => {
                 card.classList.remove('flipped');
+                card.classList.add('flip-back');
+                
+                // 动画完成后移除flip-back类
+                setTimeout(() => {
+                    card.classList.remove('flip-back');
+                }, 600);
             });
+            
+            // 在动画完成后重新渲染
+            setTimeout(() => {
+                render();
+            }, 700);
         }
 
         function renderEditMode() {
@@ -1903,11 +1954,15 @@
             });
 
             document.getElementById('fileInput').addEventListener('change', handleFileImport);
+
+            // 初始化音频系统（用户首次交互时）
+            document.addEventListener('click', () => {
+                soundManager.initAudio();
+            }, { once: true });
         }
 
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
-
 
