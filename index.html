@@ -1494,10 +1494,16 @@
             }
             
             if (newName !== oldName) {
-                const cards = appState.groups[oldName];
-                delete appState.groups[oldName];
-                appState.groups[newName] = cards;
+                // 保持原顺序重建 groups 对象
+                const newGroups = {};
+                Object.keys(appState.groups).forEach(key => {
+                    const groupName = (key === oldName) ? newName : key;
+                    newGroups[groupName] = appState.groups[key];
+                });
                 
+                appState.groups = newGroups;
+                
+                // 更新相关引用
                 if (appState.currentGroup === oldName) {
                     appState.currentGroup = newName;
                 }
@@ -1974,6 +1980,7 @@
     </script>
 </body>
 </html>
+
 
 
 
