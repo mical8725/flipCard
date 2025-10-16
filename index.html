@@ -780,21 +780,21 @@
 
         .replace-row {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             overflow-x: auto;
             padding-bottom: 5px;
         }
 
         .replace-input {
-            padding: 6px 10px;
+            padding: 6px 6px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 13px;
             outline: none;
             flex: 1;
-            min-width: 0px;
+            min-width: 50px;
         }
 
         .replace-input:focus {
@@ -802,7 +802,7 @@
         }
 
         .replace-btn {
-            padding: 6px 12px;
+            padding: 6px 6px;
             background: #ff8fb4;
             color: white;
             border: none;
@@ -2070,7 +2070,7 @@
                         <div class="replace-row">
                             <input type="text" class="replace-input" id="findInput" placeholder="查找文本">
                             <input type="text" class="replace-input" id="replaceInput" placeholder="替换为">
-                            <button class="replace-btn replace-all-btn" onclick="replaceAllText()">全部替换</button>
+                            <button class="replace-btn replace-all-btn" onclick="replaceAllText()">替换</button>
                         </div>
                     </div>
                 </div>
@@ -2249,5 +2249,6 @@
     </script>
 </body>
 </html>
+
 
 
