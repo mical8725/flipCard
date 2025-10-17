@@ -1206,7 +1206,7 @@
                        class="url-input" 
                        id="importUrlInput" 
                        placeholder="输入文件URL地址"
-                       value="http://t49aj3pbz.hd-bkt.clouddn.com/cardUpdate.txt">
+                       value="http://wuli-mical.chat/cardUpdate.txt">
                 <button class="confirm-url-btn" onclick="importFromUrl()">确认导入</button>
             </div>
             <button class="cancel-import-btn" onclick="hideImportModal()">取消</button>
@@ -1588,32 +1588,158 @@
             document.getElementById('fileInput').click();
         }
 
-        async function importFromUrl() {
-            const urlInput = document.getElementById('importUrlInput');
-            const url = urlInput.value.trim();
+        function importFromUrl() {
+            console.log('=== 开始在线导入 ===');
             
-            if (!url) {
-                alert('❌ 请输入文件地址');
+            const urlInput = document.getElementById('importUrlInput');
+            if (!urlInput) {
+                alert('错误：找不到URL输入框');
                 return;
             }
             
-            try {
-                const response = await fetch(url);
+            const url = urlInput.value.trim();
+            console.log('输入的URL:', url);
+            
+            if (!url) {
+                alert('请输入文件URL地址');
+                return;
+            }
+            
+            // 找到按钮
+            const loadingBtn = document.querySelector('.import-btn') || 
+                              document.querySelector('button[onclick*="importFromUrl"]') ||
+                              event.target;
+            
+            if (loadingBtn) {
+                const originalText = loadingBtn.textContent;
+                loadingBtn.textContent = '导入中...';
+                loadingBtn.disabled = true;
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP错误! 状态: ${response.status}`);
-                }
+                // 恢复按钮状态的函数
+                const restoreButton = () => {
+                    loadingBtn.textContent = originalText;
+                    loadingBtn.disabled = false;
+                };
                 
-                const text = await response.text();
-                processImportedText(text);
-                hideImportModal();
-                alert('✅ 在线导入成功！');
-            } catch (error) {
-                console.error('在线导入失败:', error);
-                alert(`❌ 在线导入失败：${error.message}\n\n请检查：\n1. URL地址是否正确\n2. 文件是否允许跨域访问\n3. 网络连接是否正常`);
+                // 开始导入
+                performImport(url).finally(restoreButton);
+            } else {
+                performImport(url);
             }
         }
 
+        async function performImport(url) {
+            try {
+                console.log('开始获取URL内容:', url);
+                
+                let response;
+                let finalUrl = url;
+                
+                // 如果是HTTP，尝试转HTTPS
+                if (url.toLowerCase().startsWith('http://')) {
+                    const httpsUrl = url.replace(/^http:\/\//i, 'https://');
+                    console.log(`尝试HTTPS版本: ${httpsUrl}`);
+                    
+                    try {
+                        response = await fetch(httpsUrl);
+                        if (response.ok) {
+                            finalUrl = httpsUrl;
+                            console.log('HTTPS版本可用');
+                        } else {
+                            throw new Error('HTTPS版本返回错误');
+                        }
+                    } catch (httpsError) {
+                        console.log('HTTPS尝试失败:', httpsError.message);
+                        throw new Error(`HTTP地址无法在HTTPS页面中访问。\n\n建议：\n1. 下载文件后使用本地导入\n2. 检查是否有HTTPS版本\n3. 尝试将 http:// 改为 https://`);
+                    }
+                } else {
+                    response = await fetch(finalUrl);
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`请求失败: HTTP ${response.status} ${response.statusText}`);
+                }
+                
+                const content = await response.text();
+                console.log('获取到内容长度:', content.length);
+                
+                if (!content.trim()) {
+                    throw new Error('文件内容为空');
+                }
+                
+                // 处理内容
+                importTextContent(content);
+                
+            } catch (error) {
+                console.error('导入错误:', error);
+                alert(`导入失败：\n${error.message}`);
+            }
+        }
+
+        function importTextContent(content) {
+            console.log('开始解析内容...');
+            
+            const lines = content.trim().split('\n');
+            const groups = {};
+            let currentGroup = '默认分组';
+            
+            lines.forEach((line, index) => {
+                line = line.trim();
+                if (!line) return;
+                
+                if (line.startsWith('#')) {
+                    currentGroup = line.substring(1).trim() || '默认分组';
+                    if (!groups[currentGroup]) {
+                        groups[currentGroup] = [];
+                    }
+                } else {
+                    if (!groups[currentGroup]) {
+                        groups[currentGroup] = [];
+                    }
+                    groups[currentGroup].push(line);
+                }
+            });
+            
+            console.log('解析到的分组:', Object.keys(groups));
+            
+            if (Object.keys(groups).length === 0) {
+                alert('没有找到有效的卡片内容\n\n请确认文件格式正确：\n# 分组名\n卡片内容1\n卡片内容2');
+                return;
+            }
+            
+            // 合并到现有数据
+            const conflicts = [];
+            Object.keys(groups).forEach(groupName => {
+                if (appState.groups[groupName]) {
+                    conflicts.push(groupName);
+                }
+            });
+            
+            if (conflicts.length > 0) {
+                const overwrite = confirm(`发现同名分组：${conflicts.join(', ')}\n\n点击"确定"覆盖现有分组\n点击"取消"跳过同名分组`);
+                
+                Object.keys(groups).forEach(groupName => {
+                    if (!conflicts.includes(groupName) || overwrite) {
+                        appState.groups[groupName] = groups[groupName];
+                    }
+                });
+            } else {
+                Object.assign(appState.groups, groups);
+            }
+            
+            // 切换到第一个导入的分组
+            const importedGroups = Object.keys(groups);
+            if (importedGroups.length > 0) {
+                appState.currentGroup = importedGroups[0];
+            }
+            
+            saveState();
+            render();
+            
+
+        }
+        
+        
         function processImportedText(text) {
             const lines = text.split('\n');
             let currentGroup = null;
@@ -2277,5 +2403,7 @@
     </script>
 </body>
 </html>
+
+
 
 
