@@ -4,28 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>记忆卡片</title>
+    
     <!-- 添加MathJax支持 -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- ✅ 使用Cloudflare的替代方案 -->
+    <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+   
     <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-                processEnvironments: true
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
-                ignoreHtmlClass: 'tex2jax_ignore',
-                processHtmlClass: 'tex2jax_process'
-            },
-            svg: {
-                fontCache: 'global',
-                scale: 1.0
-            }
-        };
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true
+        },
+        chtml: { scale: 1.0 }
+    };
     </script>
+
+    <!-- 👇 然后引入MathJax -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- 🔥 在这里插入 -->
+    <style>
+    .mjx-c1D434, .mjx-c1D435, .mjx-c1D436, .mjx-c1D437, .mjx-c1D438, .mjx-c1D439,
+    .mjx-c1D43A, .mjx-c1D43B, .mjx-c1D43C, .mjx-c1D43D, .mjx-c1D43E, .mjx-c1D43F,
+    .mjx-c1D440, .mjx-c1D441, .mjx-c1D442, .mjx-c1D443, .mjx-c1D444, .mjx-c1D445,
+    .mjx-c1D446, .mjx-c1D447, .mjx-c1D448, .mjx-c1D449, .mjx-c1D44A, .mjx-c1D44B,
+    .mjx-c1D44C, .mjx-c1D44D {
+        font-size: 0.9em !important;
+    }
+    </style>
+
     <style>
         * {
             margin: 0;
@@ -1415,6 +1423,8 @@
                 font-size: 13px;
             }
         }
+        
+            
     </style>
 </head>
 <body>
@@ -1855,7 +1865,7 @@
             document.getElementById('fileInput').click();
         }
 
-        // ✨ 从仓库导入预设文件
+         // ✨ 从仓库导入预设文件
         async function importFromRepo() {
             const btn = event.target.closest('.quick-import-btn');
             const originalHTML = btn.innerHTML;
@@ -1864,17 +1874,18 @@
             btn.disabled = true;
             
             try {
-                // 构建文件URL（相对路径）
-                const filename = 'cardUpdate.txt';
-                const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-                const fileUrl = baseUrl + filename;
+                // 🔥 使用相对路径（与HTML同目录）
+                const fileUrl = './cardUpdate.txt';
                 
                 console.log('从仓库导入:', fileUrl);
                 
-                const response = await fetch(fileUrl);
+                const response = await fetch(fileUrl, {
+                    method: 'GET',
+                    cache: 'no-cache' // 避免缓存问题
+                });
                 
                 if (!response.ok) {
-                    throw new Error(`文件不存在 (HTTP ${response.status})`);
+                    throw new Error(`文件加载失败 (HTTP ${response.status})`);
                 }
                 
                 const content = await response.text();
@@ -1889,11 +1900,21 @@
                 // 导入成功，关闭模态框
                 hideImportModal();
                 
-                alert(`✅ 快速导入成功！\n已从仓库加载预设数据`);
+                alert(`✅ 快速导入成功！`);
                 
             } catch (error) {
                 console.error('导入失败:', error);
-                alert(`❌ 导入失败：${error.message}\n\n请确认：\n1. 文件 "cardUpdate.txt" 存在于仓库根目录\n2. 文件内容格式正确\n3. 网络连接正常`);
+                
+                // 更详细的错误提示
+                let errorMsg = '❌ 导入失败：' + error.message;
+                
+                if (error.message.includes('403')) {
+                    errorMsg += '\n\n💡 可能原因：\n1. 文件访问权限不足\n2. 七牛云未配置CORS\n3. 文件不存在';
+                } else if (error.message.includes('404')) {
+                    errorMsg += '\n\n💡 请确认：\n1. cards.txt 文件已上传\n2. 文件名正确（区分大小写）\n3. 文件与HTML在同一目录';
+                }
+                
+                alert(errorMsg);
             } finally {
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
@@ -2641,9 +2662,13 @@
                 hideImportModal();
             }
         });
+       
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
+
+
+
 
 
