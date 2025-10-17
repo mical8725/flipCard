@@ -1162,7 +1162,7 @@
     <div class="controls" id="viewControls">
         <button class="btn group-selector-btn" id="groupSelectorBtn">
             <div class="folder-icon"></div>
-            <span class="group-name">水果</span>
+            <span class="group-name">匀变速两组比例</span>
         </button>
         <div class="button-row">
             <button class="btn" id="editGroupBtn">📁 编辑分组</button>
@@ -1218,12 +1218,10 @@
     <script>
         let appState = {
             groups: {
-                '水果': ['苹果', '香蕉', '橙子'],
-                '动物': ['老虎', '狮子', '大象'],
-                '化学': ['H_2O（水）', 'CO_2（二氧化碳）', 'NaCl（氯化钠）'],
-                '数学': ['$x^2 + y^2 = z^2$', '$E = mc^2$', '$$\\frac{a^3 + b^3}{c}$$', '$\\frac{1}{2} + \\frac{1}{4} = \\frac{3}{4}$', '$\\int_{0}^{\\infty} e^{-x} dx = 1$']
+                '匀变速两组比例': ['等时前位比', '等时第位比', '等时第速比', '等位前时比', '等位第时比', '等位第速比', '等时均速比', '等位均速比']
+                '三大定理的使用步骤': ['牛顿第二定律', '动能定理', '动量定理']
             },
-            currentGroup: '水果',
+            currentGroup: '匀变速两组比例',
             currentPage: 'view',
             editingGroup: null,
             shuffledCards: [],
@@ -1871,7 +1869,7 @@
                     appState.currentGroup = data.currentGroup || appState.currentGroup;
                     
                     if (!appState.groups[appState.currentGroup]) {
-                        appState.currentGroup = Object.keys(appState.groups)[0] || '水果';
+                        appState.currentGroup = Object.keys(appState.groups)[0] || '匀变速两组比例';
                     }
                 } catch (e) {
                     console.log('Failed to load state:', e);
@@ -2280,6 +2278,7 @@
     </script>
 </body>
 </html>
+
 
 
 
