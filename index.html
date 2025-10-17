@@ -1029,51 +1029,86 @@
             text-align: left;
         }
 
-        .url-section {
-            display: none;
-            flex-direction: column;
-            gap: 10px;
+        /* ✨ 快速导入样式 */
+        .quick-import-section,
+        .local-import-section {
             margin-bottom: 20px;
-            padding: 15px;
-            background: #f0f8ff;
-            border-radius: 8px;
-            border: 1px solid #e1ecf4;
         }
 
-        .url-section.show {
-            display: flex;
-        }
-
-        .url-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+        .section-title {
             font-size: 14px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .url-input:focus {
-            border-color: #ff8fb4;
-        }
-
-        .confirm-url-btn {
-            padding: 12px 24px;
-            background: #9b7ec4;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
             font-weight: 600;
-            outline: none;
-            transition: all 0.3s;
         }
 
-        .confirm-url-btn:hover {
-            background: #8567b3;
-            transform: translateY(-2px);
+        .quick-import-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            border-color: transparent !important;
+        }
+
+        .quick-import-btn:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #63428b 100%) !important;
+            transform: translateX(8px) translateY(-2px) !important;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4) !important;
+        }
+
+        .local-import-btn {
+            background: #28a745 !important;
+            border-color: #28a745 !important;
+        }
+
+        .local-import-btn:hover {
+            background: #218838 !important;
+            border-color: #218838 !important;
+        }
+
+        .import-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+
+        .import-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .import-desc {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .divider-line {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .divider-line::before,
+        .divider-line::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 42%;
+            height: 1px;
+            background: #ddd;
+        }
+
+        .divider-line::before {
+            left: 0;
+        }
+
+        .divider-line::after {
+            right: 0;
+        }
+
+        .divider-line span {
+            background: white;
+            padding: 0 15px;
+            color: #999;
+            font-size: 13px;
         }
 
         .cancel-import-btn {
@@ -1187,28 +1222,39 @@
         </div>
     </div>
 
-    <!-- 👇 新增：导入模态框 -->
+    <!-- ✨ 快速导入模态框 -->
     <div class="modal" id="importModal">
         <div class="modal-content">
-            <h2 class="modal-title">导入TXT文件</h2>
-            <div class="import-options">
-                <button class="import-option-btn local-import" onclick="importFromLocal()">
+            <h2 class="modal-title">📥 导入数据</h2>
+            
+            <!-- 快速导入区 -->
+            <div class="quick-import-section">
+                <h3 class="section-title">⚡ 快速导入</h3>
+                <button class="import-option-btn quick-import-btn" onclick="importFromRepo()">
+                    <span class="import-icon">📚</span>
+                    <div class="import-text">
+                        <div class="import-title">从仓库导入</div>
+                        <div class="import-desc">加载预设卡片数据</div>
+                    </div>
+                </button>
+            </div>
+
+            <div class="divider-line">
+                <span>或</span>
+            </div>
+
+            <!-- 本地导入区 -->
+            <div class="local-import-section">
+                <h3 class="section-title">💾 本地导入</h3>
+                <button class="import-option-btn local-import-btn" onclick="importFromLocal()">
                     <span class="import-icon">📁</span>
-                    <span class="import-text">本地导入</span>
-                </button>
-                <button class="import-option-btn online-import" onclick="toggleUrlSection()">
-                    <span class="import-icon">🌐</span>
-                    <span class="import-text">在线导入</span>
+                    <div class="import-text">
+                        <div class="import-title">选择本地文件</div>
+                        <div class="import-desc">支持拖拽TXT文件</div>
+                    </div>
                 </button>
             </div>
-            <div class="url-section" id="urlSection">
-                <input type="text" 
-                       class="url-input" 
-                       id="importUrlInput" 
-                       placeholder="输入文件URL地址"
-                       value="http://wuli-mical.chat/cardUpdate.txt">
-                <button class="confirm-url-btn" onclick="importFromUrl()">确认导入</button>
-            </div>
+
             <button class="cancel-import-btn" onclick="hideImportModal()">取消</button>
         </div>
     </div>
@@ -1578,102 +1624,74 @@
             urlSection.classList.remove('show');
         }
 
-        function toggleUrlSection() {
-            const urlSection = document.getElementById('urlSection');
-            urlSection.classList.toggle('show');
-        }
+
 
         function importFromLocal() {
             hideImportModal();
             document.getElementById('fileInput').click();
         }
 
-        function importFromUrl() {
-            console.log('=== 开始在线导入 ===');
+        // ✨ 从仓库导入预设文件
+        async function importFromRepo() {
+            const btn = event.target.closest('.quick-import-btn');
+            const originalHTML = btn.innerHTML;
             
-            const urlInput = document.getElementById('importUrlInput');
-            if (!urlInput) {
-                alert('错误：找不到URL输入框');
-                return;
-            }
+            btn.innerHTML = `<span class="import-icon">⏳</span><div class="import-text"><div class="import-title">导入中...</div></div>`;
+            btn.disabled = true;
             
-            const url = urlInput.value.trim();
-            console.log('输入的URL:', url);
-            
-            if (!url) {
-                alert('请输入文件URL地址');
-                return;
-            }
-            
-            // 找到按钮
-            const loadingBtn = document.querySelector('.import-btn') || 
-                              document.querySelector('button[onclick*="importFromUrl"]') ||
-                              event.target;
-            
-            if (loadingBtn) {
-                const originalText = loadingBtn.textContent;
-                loadingBtn.textContent = '导入中...';
-                loadingBtn.disabled = true;
-                
-                // 恢复按钮状态的函数
-                const restoreButton = () => {
-                    loadingBtn.textContent = originalText;
-                    loadingBtn.disabled = false;
-                };
-                
-                // 开始导入
-                performImport(url).finally(restoreButton);
-            } else {
-                performImport(url);
-            }
-        }
-
-        async function performImport(url) {
             try {
-                console.log('开始获取URL内容:', url);
+                // 构建文件URL（相对路径）
+                const filename = 'cardUpdate.txt';
+                const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+                const fileUrl = baseUrl + filename;
                 
-                let response;
-                let finalUrl = url;
+                console.log('从仓库导入:', fileUrl);
                 
-                // 如果是HTTP，尝试转HTTPS
-                if (url.toLowerCase().startsWith('http://')) {
-                    const httpsUrl = url.replace(/^http:\/\//i, 'https://');
-                    console.log(`尝试HTTPS版本: ${httpsUrl}`);
-                    
-                    try {
-                        response = await fetch(httpsUrl);
-                        if (response.ok) {
-                            finalUrl = httpsUrl;
-                            console.log('HTTPS版本可用');
-                        } else {
-                            throw new Error('HTTPS版本返回错误');
-                        }
-                    } catch (httpsError) {
-                        console.log('HTTPS尝试失败:', httpsError.message);
-                        throw new Error(`HTTP地址无法在HTTPS页面中访问。\n\n建议：\n1. 下载文件后使用本地导入\n2. 检查是否有HTTPS版本\n3. 尝试将 http:// 改为 https://`);
-                    }
-                } else {
-                    response = await fetch(finalUrl);
-                }
+                const response = await fetch(fileUrl);
                 
                 if (!response.ok) {
-                    throw new Error(`请求失败: HTTP ${response.status} ${response.statusText}`);
+                    throw new Error(`文件不存在 (HTTP ${response.status})`);
                 }
                 
                 const content = await response.text();
-                console.log('获取到内容长度:', content.length);
                 
                 if (!content.trim()) {
                     throw new Error('文件内容为空');
                 }
                 
-                // 处理内容
+                // 处理导入内容
                 importTextContent(content);
                 
+                // 导入成功，关闭模态框
+                hideImportModal();
+                
+                alert(`✅ 快速导入成功！\n已从仓库加载预设数据`);
+                
             } catch (error) {
-                console.error('导入错误:', error);
-                alert(`导入失败：\n${error.message}`);
+                console.error('导入失败:', error);
+                alert(`❌ 导入失败：${error.message}\n\n请确认：\n1. 文件 "cardUpdate.txt" 存在于仓库根目录\n2. 文件内容格式正确\n3. 网络连接正常`);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
             }
+        }
+
+        // 📁 本地文件导入（保持不变）
+        function importFromLocal() {
+            hideImportModal();
+            document.getElementById('fileInput').click();
+        }
+
+        // 隐藏导入模态框
+        function hideImportModal() {
+            const modal = document.getElementById('importModal');
+            modal.classList.remove('show');
+        }
+
+        // 显示导入模态框
+        function showImportModal() {
+            const modal = document.getElementById('importModal');
+            modal.classList.add('show');
         }
 
         function importTextContent(content) {
@@ -2403,6 +2421,9 @@
     </script>
 </body>
 </html>
+
+
+
 
 
 
